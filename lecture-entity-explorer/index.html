@@ -1,0 +1,177 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Lecture Drug, Pathogen and Disease Explorer</title>
+  <style>
+    body { margin: 0; font-family: Georgia, serif; background: #f7f1e8; color: #1f2a2e; }
+    .wrap { max-width: 1380px; margin: 0 auto; padding: 24px; }
+    h1 { margin: 0 0 8px; font-size: clamp(2rem, 4vw, 3.2rem); }
+    .subtitle { color: #58656a; max-width: 980px; }
+    .stats { display: flex; gap: 10px; flex-wrap: wrap; margin: 14px 0 20px; }
+    .stat, .panel { background: #fffaf2; border: 1px solid #d9ccb8; border-radius: 16px; box-shadow: 0 10px 28px rgba(60,44,15,.08); }
+    .stat { padding: 10px 14px; }
+    .grid { display: grid; grid-template-columns: 320px 1fr; gap: 18px; }
+    .filters { padding: 18px; position: sticky; top: 16px; }
+    .content { padding: 18px; }
+    label { display: block; margin: 0 0 6px; font-size: .84rem; color: #58656a; text-transform: uppercase; letter-spacing: .08em; }
+    .field { margin-bottom: 14px; }
+    input, select, button { width: 100%; padding: 10px 12px; border: 1px solid #d9ccb8; border-radius: 12px; font: inherit; box-sizing: border-box; background: #fffdf9; }
+    button { cursor: pointer; }
+    .checks label { display: flex; align-items: center; gap: 8px; text-transform: none; letter-spacing: 0; color: #1f2a2e; }
+    .checks input { width: auto; }
+    .button-row { display: grid; gap: 8px; }
+    .mode-panel { display: none; }
+    .mode-panel.active { display: block; }
+    .cards { display: grid; gap: 14px; }
+    .card { border: 1px solid #d9ccb8; border-radius: 16px; padding: 16px; background: linear-gradient(180deg,#fff,#fbf6ef); }
+    .card h3 { margin: 0 0 8px; }
+    .meta { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 10px; }
+    .chip { padding: 6px 10px; border-radius: 999px; background: #e6efe8; font-size: .85rem; }
+    .chip.alt { background: #e8edf6; }
+    .card section { margin-top: 10px; }
+    .card h4 { margin: 0 0 6px; color: #9b3d1f; font-size: .95rem; text-transform: uppercase; letter-spacing: .06em; }
+    .sources { color: #58656a; font-size: .9rem; }
+    ul { margin: 0; padding-left: 20px; }
+    .tree-path { font-family: "Courier New", monospace; font-size: .92rem; background: #fffdf8; border: 1px solid #e4d8c5; border-radius: 12px; padding: 10px 12px; }
+    .ilo-list { display: grid; gap: 8px; }
+    .ilo-link { display: block; padding: 12px; border: 1px solid #d9ccb8; border-radius: 12px; background: #fffdf8; color: inherit; text-decoration: none; }
+    .ilo-link:hover { background: #f6efe4; }
+    .ilo-title { font-weight: 700; }
+    .muted { color: #58656a; font-weight: 400; font-size: .92rem; }
+    .tree-view { display: none; gap: 16px; grid-template-columns: minmax(0, 1fr); }
+    .tree-view.tree-focus { grid-template-columns: minmax(0, 1fr); }
+    .tree { display: none; gap: 12px; overflow: auto; padding: 8px 4px 16px; min-height: 68vh; border: 1px solid #e4d7c4; border-radius: 16px; background: linear-gradient(180deg,#fffdf9,#fbf5ec); cursor: grab; }
+    .tree-scene { width: max-content; min-width: 100%; transform-origin: top center; padding: 8px 18px 28px; }
+    .tree.panning { cursor: grabbing; }
+    .tree-board { display: grid; gap: 14px; position: relative; min-height: 72vh; }
+    .tree-help { color: #58656a; font-size: .9rem; }
+    .tree-toolbar { display: flex; justify-content: flex-end; gap: 8px; }
+    .tree-toolbar button { width: auto; min-width: 132px; }
+    .tree-level { display: flex; justify-content: center; gap: 18px; margin: 0; padding: 22px 0 0; list-style: none; position: relative; }
+    .tree-level::before { content: ""; position: absolute; top: 0; left: 50%; width: 0; height: 22px; border-left: 2px solid #dcc8aa; transform: translateX(-50%); z-index: 0; }
+    .tree-level > li { position: relative; display: flex; flex-direction: column; align-items: center; text-align: center; padding: 0 8px; }
+    .tree-level > li::before,
+    .tree-level > li::after { content: ""; position: absolute; top: 0; width: 50%; height: 22px; border-top: 2px solid #dcc8aa; z-index: 0; }
+    .tree-level > li::before { right: 50%; border-right: 2px solid #dcc8aa; }
+    .tree-level > li::after { left: 50%; border-left: 2px solid #dcc8aa; }
+    .tree-level > li:only-child::before,
+    .tree-level > li:only-child::after,
+    .tree-level > li:first-child::before,
+    .tree-level > li:last-child::after { border: 0; }
+    .tree-level > li:only-child { padding-top: 0; }
+    .tree-level > li:last-child::before { border-radius: 0 10px 0 0; }
+    .tree-level > li:first-child::after { border-radius: 10px 0 0 0; }
+    .tree-node { min-width: 180px; max-width: 240px; border: 1px solid #d9ccb8; border-radius: 14px; background: #fffdf9; padding: 10px 12px; box-shadow: 0 6px 18px rgba(60,44,15,.05); position: relative; font-weight: 700; text-align: left; cursor: pointer; z-index: 2; }
+    .tree-node.active { border-color: #b96d41; box-shadow: 0 0 0 2px rgba(185,109,65,.18), 0 8px 22px rgba(60,44,15,.10); }
+    .tree-node .count { color: #58656a; font-size: .85rem; font-weight: 400; margin-left: 6px; }
+    .tree-inline-card { width: min(720px, 92vw); text-align: left; position: absolute; top: calc(100% + 14px); left: 50%; transform: translateX(-50%); margin: 0; z-index: 4; box-shadow: 0 14px 32px rgba(60,44,15,.12); }
+    .tree-level > li.has-inline-detail { z-index: 5; }
+    .tree-level > li > .tree-level { margin-top: 6px; }
+    .tree-inline-card ul { display: block; margin: 0; padding-left: 20px; list-style: disc; }
+    .tree-inline-card li { display: list-item; position: static; padding: 0; text-align: left; }
+    .tree-inline-card li::before,
+    .tree-inline-card li::after,
+    .tree-inline-card ul::before { display: none !important; content: none !important; border: 0 !important; }
+    .small-muted { color: #58656a; font-size: .92rem; margin-bottom: 10px; }
+    .test-controls { display: grid; grid-template-columns: 1fr 1fr auto auto; gap: 10px; margin: 8px 0 16px; align-items: end; }
+    .test-clue, .mcq-clue { border: 1px solid #d9ccb8; border-radius: 12px; padding: 10px 12px; background: #fffdf9; margin-bottom: 10px; }
+    .test-answer-row { display: grid; grid-template-columns: 1fr auto; gap: 10px; margin-top: 12px; }
+    .test-feedback { margin-top: 12px; border-radius: 12px; padding: 12px; border: 1px solid #d9ccb8; }
+    .test-feedback.ok { background: #edf7ef; border-color: #8fbb99; }
+    .test-feedback.bad { background: #fff0ea; border-color: #d78f72; }
+    .mcq-grid { display: grid; gap: 10px; margin-top: 12px; }
+    .mcq-option.correct { border-color: #4e8c5c; background: #edf7ef; }
+    .mcq-option.incorrect { border-color: #c96b4e; background: #fff0ea; }
+    .test-path { margin-top: 14px; }
+    body.tree-fullscreen { overflow: hidden; }
+    body.tree-fullscreen .wrap { max-width: none; width: 100vw; padding: 12px; box-sizing: border-box; }
+    body.tree-fullscreen .grid { grid-template-columns: 280px minmax(0, 1fr); }
+    body.tree-fullscreen .tree-view { grid-template-columns: minmax(0, 1fr); }
+    body.tree-fullscreen .tree-board { min-height: calc(100vh - 120px); }
+    body.tree-fullscreen .tree { min-height: calc(100vh - 180px); max-height: calc(100vh - 180px); }
+    @media (max-width: 980px) {
+      .grid { grid-template-columns: 1fr; }
+      .filters { position: static; }
+      .test-controls { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <h1>Lecture Drug, Pathogen and Disease Explorer</h1>
+    <div class="subtitle">Built from lecture-style PDFs and PowerPoints in Downloads plus the supplied ILO Word document. It keeps the original explorer layout, tree navigation, and test mode, while extending the dataset to drugs, pathogens, and diseases.</div>
+    <div class="stats" id="stats"></div>
+    <div class="grid">
+      <aside class="panel filters">
+        <div class="field"><label for="search">Search</label><input id="search" placeholder="Name, disease, sign, use, contraindication"></div>
+        <div class="field"><label for="entityType">Entity Type</label><select id="entityType"></select></div>
+        <div class="field"><label for="typeLabel">Specific Type</label><select id="typeLabel"></select></div>
+        <div class="field"><label for="category">Category</label><select id="category"></select></div>
+        <div class="field"><label for="gram">Gram Stain</label><select id="gram"></select></div>
+        <div class="field"><label for="oxygen">Oxygen Preference</label><select id="oxygen"></select></div>
+        <div class="field"><label for="pathogenicity">Pathogenicity</label><select id="pathogenicity"></select></div>
+        <div class="field"><label for="source">Source File</label><select id="source"></select></div>
+        <div class="field"><label for="speciesFocus">Host / Species</label><select id="speciesFocus"></select></div>
+        <div class="field"><label for="system">Body System</label><select id="system"></select></div>
+        <div class="field"><label for="transmission">Transmission</label><select id="transmission"></select></div>
+        <div class="field"><label for="zoonoticStatus">Zoonotic Status</label><select id="zoonoticStatus"></select></div>
+        <div class="field"><label for="reportingStatus">Reporting Status</label><select id="reportingStatus"></select></div>
+        <div class="field"><label for="route">Route</label><select id="route"></select></div>
+        <div class="field"><label for="mechanismGroup">Mechanism</label><select id="mechanismGroup"></select></div>
+        <div class="field"><label for="cautionTag">Caution Tag</label><select id="cautionTag"></select></div>
+        <div class="field"><label for="diseaseClass">Disease Class</label><select id="diseaseClass"></select></div>
+        <div class="field"><label for="sortBy">Sort By</label><select id="sortBy"><option value="name">Name</option><option value="type">Type</option><option value="pathogenicity">Pathogenicity</option><option value="sources">Mention count</option></select></div>
+        <div class="field"><label for="viewMode">View Mode</label><select id="viewMode"><option value="cards">Cards</option><option value="tree">Tree</option><option value="test">Test</option></select></div>
+        <div class="field"><label for="treeRoot">Tree Root</label><select id="treeRoot"></select></div>
+        <div class="field" id="testTypeField" hidden><label for="testType">Test Type</label><select id="testType"><option value="narrowing">Category narrowing</option><option value="fillTree">Fill the tree</option><option value="mcq">Unique description MCQ</option></select></div>
+        <div class="field" id="testScopeField" hidden><label for="testScope">Test On</label><select id="testScope"><option value="all">Drugs and pathogens and diseases</option><option value="drug">Drugs only</option><option value="pathogen">Pathogens only</option><option value="disease">Diseases only</option></select></div>
+        <div class="field checks">
+          <label><input id="iloOnly" type="checkbox"> Mentioned in ILO document</label>
+          <label><input id="contraOnly" type="checkbox"> Only entries with contraindications/cautions</label>
+          <label><input id="zoonoticOnly" type="checkbox"> Zoonotic pathogens only</label>
+          <label><input id="reportableOnly" type="checkbox"> Notifiable/reportable pathogens only</label>
+          <label><input id="drugOnly" type="checkbox"> Drugs only</label>
+          <label><input id="pathogenOnly" type="checkbox"> Pathogens only</label>
+          <label><input id="diseaseOnly" type="checkbox"> Diseases only</label>
+        </div>
+        <div class="button-row">
+          <button id="reset" type="button">Reset filters</button>
+          <button id="copyVisible" type="button">Copy visible names</button>
+        </div>
+      </aside>
+      <main class="panel content">
+        <div id="resultCount"></div>
+
+        <section class="mode-panel active" id="cardsPanel">
+          <div class="cards" id="cards"></div>
+        </section>
+
+        <section class="mode-panel" id="treePanel">
+          <div class="tree-view" id="treeView" hidden>
+            <div class="tree-board">
+              <div class="tree-toolbar">
+                <button id="treeFullscreen" type="button">Expand tree</button>
+              </div>
+              <div class="tree-help">Scroll wheel to zoom. Drag empty space with left click to move around. Click a name to load its details.</div>
+              <div class="tree" id="tree" hidden></div>
+            </div>
+          </div>
+        </section>
+
+        <section class="mode-panel" id="testPanel">
+          <div class="test-controls">
+            <button id="newTest" type="button">New test</button>
+            <button id="nextClue" type="button">Next clue</button>
+          </div>
+          <div class="small-muted" id="testMeta"></div>
+          <div id="testView"></div>
+        </section>
+      </main>
+    </div>
+  </div>
+  <script src="lecture_entity_data.js"></script>
+  <script src="lecture_entity_explorer_app.js"></script>
+</body>
+</html>
